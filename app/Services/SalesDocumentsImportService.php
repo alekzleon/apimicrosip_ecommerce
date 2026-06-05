@@ -145,12 +145,15 @@ class SalesDocumentsImportService
                     throw new RuntimeException('Detalle DOCTOS_VE_DET invalido.');
                 }
 
+                $ecommerceDetailId = $detail['id'] ?? $detail['ID'] ?? $index;
+                unset($detail['id'], $detail['ID']);
+
                 if ($doctoVeId && empty($detail['DOCTO_VE_ID'])) {
                     $detail['DOCTO_VE_ID'] = $doctoVeId;
                 }
 
                 $detailIds[] = [
-                    'id' => $detail['id'] ?? $detail['ID'] ?? $index,
+                    'id' => $ecommerceDetailId,
                     'docto_ve_det_id' => $this->insertFirebirdRecord('DOCTOS_VE_DET', $detail, 'DOCTO_VE_DET_ID'),
                 ];
             }
@@ -192,6 +195,10 @@ class SalesDocumentsImportService
     private function insertFirebirdRecord(string $table, array $record, string $returningField): mixed
     {
         $record = $this->cleanRecord($record);
+        $returningField = strtoupper($returningField);
+
+        $record = $this->applyFirebirdColumnAliases($table, $record);
+        $record = $this->applyFirebirdGeneratedValues($table, $record, $returningField);
 
         if ($record === []) {
             throw new RuntimeException("Registro vacio para {$table}.");
@@ -212,6 +219,53 @@ class SalesDocumentsImportService
         } catch (Throwable $e) {
             throw new RuntimeException("Error insertando {$table}: ".$e->getMessage(), previous: $e);
         }
+    }
+
+    private function applyFirebirdColumnAliases(string $table, array $record): array
+    {
+        if (strtoupper($table) !== 'DOCTOS_VE_DET') {
+            return $record;
+        }
+
+        $aliases = [
+            'UNIDADES_COMPRO' => 'UNIDADES_COMPROM',
+            'UNIDADES_SURT_DE' => 'UNIDADES_SURT_DEV',
+            'PCTJE_DSCTO_PROM' => 'PCTJE_DSCTO_PROMO',
+        ];
+
+        foreach ($aliases as $from => $to) {
+            if (array_key_exists($from, $record) && ! array_key_exists($to, $record)) {
+                $record[$to] = $record[$from];
+            }
+
+            unset($record[$from]);
+        }
+
+        return $record;
+    }
+
+    private function applyFirebirdGeneratedValues(string $table, array $record, string $returningField): array
+    {
+        if (
+            in_array($returningField, ['DOCTO_VE_ID', 'DOCTO_VE_DET_ID'], true)
+            && (! array_key_exists($returningField, $record) || $this->isBlankValue($record[$returningField]))
+        ) {
+            $record[$returningField] = -1;
+        }
+
+        if (
+            strtoupper($table) === 'DOCTOS_VE_DET'
+            && (! array_key_exists('POSICION', $record) || $this->isBlankValue($record['POSICION']))
+        ) {
+            $record['POSICION'] = -1;
+        }
+
+        return $record;
+    }
+
+    private function isBlankValue(mixed $value): bool
+    {
+        return $value === null || $value === '';
     }
 
     private function cleanRecord(array $record): array
