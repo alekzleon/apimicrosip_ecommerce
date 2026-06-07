@@ -57,7 +57,7 @@
         }
 
         .cards {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
         }
 
         .panel {
@@ -97,6 +97,8 @@
         }
 
         .dot.ok { background: var(--ok); }
+
+        .dot.warn { background: var(--bad); }
 
         .actions {
             display: flex;
@@ -160,6 +162,12 @@
             background: #fef3f2;
             border: 1px solid #fecdca;
             color: #912018;
+        }
+
+        .log-warning {
+            color: var(--bad);
+            font-weight: 800;
+            margin: 8px 0 0;
         }
 
         .badge {
@@ -247,6 +255,23 @@
                 <div class="metric">{{ number_format($queue['syncedTotal']) }}</div>
                 <p class="muted">registros marcados como true</p>
             </div>
+
+            <div class="panel">
+                <h2>Laravel log</h2>
+                <div class="status">
+                    <span class="dot {{ $laravelLog['is_warning'] ? 'warn' : 'ok' }}"></span>
+                    {{ $laravelLog['formatted'] }}
+                </div>
+                @if ($laravelLog['is_warning'])
+                    <p class="log-warning">{{ $laravelLog['warning'] }}</p>
+                @else
+                    <p class="muted">storage/logs/laravel.log</p>
+                @endif
+                <form method="post" action="{{ route('support.logs.laravel.clear') }}" style="margin-top: 12px;">
+                    @csrf
+                    <button type="submit">Limpiar log</button>
+                </form>
+            </div>
         </section>
 
         @if ($lastRun)
@@ -268,6 +293,13 @@
                 Recibidos: {{ number_format($lastSalesDocumentRun['received']) }} ·
                 Insertados: {{ number_format($lastSalesDocumentRun['synced']) }} ·
                 Fallidos: {{ number_format($lastSalesDocumentRun['failed']) }}
+            </div>
+        @endif
+
+        @if (session('support_log_result'))
+            <div class="alert {{ session('support_log_result.ok') ? 'ok' : 'bad' }}">
+                <strong>{{ session('support_log_result.ok') ? 'Log actualizado' : 'No se pudo limpiar el log' }}:</strong>
+                {{ session('support_log_result.message') }}
             </div>
         @endif
 

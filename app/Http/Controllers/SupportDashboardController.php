@@ -29,6 +29,7 @@ class SupportDashboardController extends Controller
             'recentSalesDocumentRuns' => $this->recentSalesDocumentRuns(),
             'recentSalesDocumentItems' => $this->recentSalesDocumentItems(),
             'lastSalesDocumentRun' => session('sales_documents_sync_result'),
+            'laravelLog' => $this->laravelLogStats(),
         ]);
     }
 
@@ -84,6 +85,38 @@ class SupportDashboardController extends Controller
             ]);
     }
 
+    public function clearLaravelLog(): RedirectResponse
+    {
+        $path = storage_path('logs/laravel.log');
+
+        if (! file_exists($path)) {
+            return redirect()
+                ->route('support.dashboard')
+                ->with('support_log_result', [
+                    'ok' => true,
+                    'message' => 'El log de Laravel no existe todavia.',
+                ]);
+        }
+
+        if (! is_writable($path)) {
+            return redirect()
+                ->route('support.dashboard')
+                ->with('support_log_result', [
+                    'ok' => false,
+                    'message' => 'No se pudo limpiar laravel.log porque no tiene permisos de escritura.',
+                ]);
+        }
+
+        file_put_contents($path, '');
+
+        return redirect()
+            ->route('support.dashboard')
+            ->with('support_log_result', [
+                'ok' => true,
+                'message' => 'laravel.log fue limpiado correctamente.',
+            ]);
+    }
+
     private function firebirdHealth(): array
     {
         try {
@@ -109,6 +142,7 @@ class SupportDashboardController extends Controller
 
         try {
             $response = Http::acceptJson()
+                ->asJson()
                 ->timeout(8)
                 ->post($baseUrl.'/api/v1/login', [
                     'login' => config('services.ecommerce_api.login'),
@@ -330,6 +364,40 @@ class SupportDashboardController extends Controller
         } catch (Throwable) {
             return [];
         }
+    }
+
+    private function laravelLogStats(): array
+    {
+        $path = storage_path('logs/laravel.log');
+        $bytes = file_exists($path) ? (int) filesize($path) : 0;
+        $thresholdBytes = 1024 * 1024 * 1024;
+
+        return [
+            'exists' => file_exists($path),
+            'path' => $path,
+            'bytes' => $bytes,
+            'megabytes' => $bytes / 1024 / 1024,
+            'formatted' => $this->formatBytes($bytes),
+            'is_warning' => $bytes >= $thresholdBytes,
+            'warning' => 'log alcanzando 1GB de almacenamiento',
+        ];
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1024 * 1024 * 1024) {
+            return number_format($bytes / 1024 / 1024 / 1024, 2).' GB';
+        }
+
+        if ($bytes >= 1024 * 1024) {
+            return number_format($bytes / 1024 / 1024, 2).' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 2).' KB';
+        }
+
+        return number_format($bytes).' B';
     }
 
 }
