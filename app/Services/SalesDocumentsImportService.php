@@ -198,6 +198,8 @@ class SalesDocumentsImportService
         $returningField = strtoupper($returningField);
 
         $record = $this->applyFirebirdColumnAliases($table, $record);
+        $record = $this->applyFirebirdDetailDefaults($table, $record);
+        $record = $this->normalizeFirebirdRecord($table, $record);
         $record = $this->applyFirebirdGeneratedValues($table, $record, $returningField);
 
         if ($record === []) {
@@ -229,6 +231,7 @@ class SalesDocumentsImportService
 
         $aliases = [
             'UNIDADES_COMPRO' => 'UNIDADES_COMPROM',
+            'UNIDADES_COMPROMETIDAS' => 'UNIDADES_COMPROM',
             'UNIDADES_SURT_DE' => 'UNIDADES_SURT_DEV',
             'PCTJE_DSCTO_PROM' => 'PCTJE_DSCTO_PROMO',
         ];
@@ -242,6 +245,49 @@ class SalesDocumentsImportService
         }
 
         return $record;
+    }
+
+    private function applyFirebirdDetailDefaults(string $table, array $record): array
+    {
+        if (strtoupper($table) !== 'DOCTOS_VE_DET') {
+            return $record;
+        }
+
+        $record['UNIDADES_COMPROM'] = 0.0;
+
+        return $record;
+    }
+
+    private function normalizeFirebirdRecord(string $table, array $record): array
+    {
+        if (strtoupper($table) !== 'DOCTOS_VE_DET') {
+            return $record;
+        }
+
+        foreach ($record as $column => $value) {
+            if (! str_starts_with((string) $column, 'UNIDADES')) {
+                continue;
+            }
+
+            $record[$column] = $this->normalizeFirebirdDecimal($value);
+        }
+
+        return $record;
+    }
+
+    private function normalizeFirebirdDecimal(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+
+        if (! Str::isMatch('/^-?\d+(?:\.\d+)?$/', $trimmed)) {
+            return $value;
+        }
+
+        return (float) $trimmed;
     }
 
     private function applyFirebirdGeneratedValues(string $table, array $record, string $returningField): array
