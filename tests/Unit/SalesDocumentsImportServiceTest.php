@@ -21,6 +21,15 @@ class SalesDocumentsImportServiceTest extends TestCase
         $this->assertSame('000123', $record['CLAVE_ARTICULO']);
     }
 
+    public function test_doctos_ve_det_integer_units_are_normalized_before_firebird_insert(): void
+    {
+        $record = $this->normalizeFirebirdRecord('DOCTOS_VE_DET', [
+            'UNIDADES' => 1,
+        ]);
+
+        $this->assertSame(1.0, $record['UNIDADES']);
+    }
+
     public function test_numeric_strings_outside_doctos_ve_det_are_not_normalized(): void
     {
         $record = $this->normalizeFirebirdRecord('DOCTOS_VE', [

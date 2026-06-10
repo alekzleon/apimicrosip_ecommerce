@@ -277,6 +277,10 @@ class SalesDocumentsImportService
 
     private function normalizeFirebirdDecimal(mixed $value): mixed
     {
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
         if (! is_string($value)) {
             return $value;
         }
