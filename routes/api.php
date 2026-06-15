@@ -14,5 +14,7 @@ Route::middleware('api.key')->prefix('v1')->group(function () {
 
     Route::prefix('microsip')->group(function () {
         Route::get('/ping', [MicrosipController::class, 'ping']);
+        Route::get('/clientes/{clienteId}/articulos-comprados', [MicrosipController::class, 'purchasedItems']);
+        Route::get('/clientes/{clienteId}/cargos', [MicrosipController::class, 'customerCharges']);
     });
 });
