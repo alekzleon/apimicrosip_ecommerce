@@ -42,16 +42,15 @@ class MicrosipController extends Controller
 
         try {
             $rows = DB::connection('firebird')->select(<<<'SQL'
-                SELECT
-                    dvd.DOCTO_VE_ID,
-                    dvd.CLAVE_ARTICULO,
-                    dvd.ARTICULO_ID
-                FROM DOCTOS_VE_DET dvd
-                JOIN DOCTOS_VE dv ON dv.DOCTO_VE_ID = dvd.DOCTO_VE_ID
-                WHERE dv.CLIENTE_ID = ?
-                    AND dv.FECHA BETWEEN ? AND ?
-                    AND dv.TIPO_DOCTO = 'P'
-                ORDER BY dvd.DOCTO_VE_ID, dvd.CLAVE_ARTICULO
+               SELECT DISTINCT
+                dvd.CLAVE_ARTICULO,
+                dvd.ARTICULO_ID
+            FROM DOCTOS_VE_DET dvd
+            JOIN DOCTOS_VE dv ON dv.DOCTO_VE_ID = dvd.DOCTO_VE_ID
+            WHERE dv.CLIENTE_ID = ?
+                AND dv.FECHA BETWEEN ? AND ?
+                AND dv.TIPO_DOCTO = 'P'
+            ORDER BY dvd.CLAVE_ARTICULO
             SQL, [
                 (int) $clienteId,
                 $fechaTresMesesAtras,
