@@ -13,5 +13,4 @@ Schedule::command('sync:ecommerce')
     ->withoutOverlapping();
 
 Schedule::command('sync:sales-documents')
-    ->everyMinute()
-    ->withoutOverlapping();
+    ->everyMinute()->withoutOverlapping();
