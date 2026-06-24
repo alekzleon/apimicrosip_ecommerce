@@ -96,8 +96,6 @@ class MicrosipController extends Controller
                 'S',
             ]);
 
-            dd($rows);
-
             return response()->json([
                 'ok' => true,
                 'cliente_id' => (int) $clienteId,
