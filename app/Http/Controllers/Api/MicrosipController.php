@@ -87,7 +87,7 @@ class MicrosipController extends Controller
 
         try {
             $rows = DB::connection('firebird')->select(<<<'SQL'
-                EXECUTE PROCEDURE CARGOS_CLIENTE (?, ?, ?, ?, ?)
+                SELECT * FROM CARGOS_CLIENTE (?, ?, ?, ?, ?)
             SQL, [
                 (int) $clienteId,
                 $fechaHoy,
@@ -95,6 +95,8 @@ class MicrosipController extends Controller
                 'S',
                 'S',
             ]);
+
+            dd($rows);
 
             return response()->json([
                 'ok' => true,

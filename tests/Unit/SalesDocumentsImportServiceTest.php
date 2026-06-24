@@ -30,6 +30,21 @@ class SalesDocumentsImportServiceTest extends TestCase
         $this->assertSame(1.0, $record['UNIDADES']);
     }
 
+    public function test_doctos_ve_det_price_strings_are_normalized_before_firebird_insert(): void
+    {
+        $record = $this->normalizeFirebirdRecord('DOCTOS_VE_DET', [
+            'PRECIO_UNITARIO' => '40.00',
+            'PRECIO_TOTAL_NETO' => '80.0000',
+            'PRECIO_ARTICULO_ID' => '123',
+            'CLAVE_ARTICULO' => '000123',
+        ]);
+
+        $this->assertSame(40.0, $record['PRECIO_UNITARIO']);
+        $this->assertSame(80.0, $record['PRECIO_TOTAL_NETO']);
+        $this->assertSame('123', $record['PRECIO_ARTICULO_ID']);
+        $this->assertSame('000123', $record['CLAVE_ARTICULO']);
+    }
+
     public function test_numeric_strings_outside_doctos_ve_det_are_not_normalized(): void
     {
         $record = $this->normalizeFirebirdRecord('DOCTOS_VE', [

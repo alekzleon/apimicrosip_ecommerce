@@ -265,7 +265,7 @@ class SalesDocumentsImportService
         }
 
         foreach ($record as $column => $value) {
-            if (! str_starts_with((string) $column, 'UNIDADES')) {
+            if (! $this->shouldNormalizeFirebirdDetailDecimal((string) $column)) {
                 continue;
             }
 
@@ -273,6 +273,22 @@ class SalesDocumentsImportService
         }
 
         return $record;
+    }
+
+    private function shouldNormalizeFirebirdDetailDecimal(string $column): bool
+    {
+        $column = strtoupper($column);
+
+        if (str_ends_with($column, '_ID')) {
+            return false;
+        }
+
+        return str_starts_with($column, 'UNIDADES')
+            || str_starts_with($column, 'PRECIO')
+            || str_starts_with($column, 'PCTJE_')
+            || str_contains($column, 'IMPORTE')
+            || str_contains($column, 'TOTAL')
+            || str_contains($column, 'DSCTO');
     }
 
     private function normalizeFirebirdDecimal(mixed $value): mixed
