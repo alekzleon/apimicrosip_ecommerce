@@ -658,7 +658,7 @@ class EcommerceSyncService
                     'status' => $status,
                     'http_status' => $syncResponse['status'] ?? null,
                     'error' => $error?->getMessage(),
-                    'ecommerce_response' => $syncResponse ? json_encode($syncResponse['body'] ?? null) : null,
+                    'ecommerce_response' => $syncResponse ? json_encode($this->auditSyncResponseBody($syncResponse['body'] ?? null)) : null,
                     'finished_at' => now(),
                     'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
                     'updated_at' => now(),
@@ -669,6 +669,27 @@ class EcommerceSyncService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function auditSyncResponseBody(mixed $body): mixed
+    {
+        if (! is_array($body)) {
+            return $body;
+        }
+
+        $audited = $body;
+
+        if (array_key_exists('data', $audited) && is_array($audited['data'])) {
+            $audited['data_count'] = count($audited['data']);
+            unset($audited['data']);
+        }
+
+        if (array_key_exists('errors', $audited) && is_array($audited['errors'])) {
+            $audited['errors_count'] = count($audited['errors']);
+            $audited['errors'] = array_slice($audited['errors'], 0, 10);
+        }
+
+        return $audited;
     }
 
     private function deleteAuditItem(?int $itemId): void
