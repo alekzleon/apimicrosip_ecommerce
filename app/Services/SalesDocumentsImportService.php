@@ -260,12 +260,10 @@ class SalesDocumentsImportService
 
     private function normalizeFirebirdRecord(string $table, array $record): array
     {
-        if (strtoupper($table) !== 'DOCTOS_VE_DET') {
-            return $record;
-        }
+        $table = strtoupper($table);
 
         foreach ($record as $column => $value) {
-            if (! $this->shouldNormalizeFirebirdDetailDecimal((string) $column)) {
+            if (! $this->shouldNormalizeFirebirdDecimal($table, (string) $column)) {
                 continue;
             }
 
@@ -273,6 +271,21 @@ class SalesDocumentsImportService
         }
 
         return $record;
+    }
+
+    private function shouldNormalizeFirebirdDecimal(string $table, string $column): bool
+    {
+        $column = strtoupper($column);
+
+        if ($table === 'DOCTOS_VE' && $column === 'TIPO_CAMBIO') {
+            return true;
+        }
+
+        if ($table !== 'DOCTOS_VE_DET') {
+            return false;
+        }
+
+        return $this->shouldNormalizeFirebirdDetailDecimal($column);
     }
 
     private function shouldNormalizeFirebirdDetailDecimal(string $column): bool

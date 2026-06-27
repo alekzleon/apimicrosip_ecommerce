@@ -49,9 +49,11 @@ class SalesDocumentsImportServiceTest extends TestCase
     {
         $record = $this->normalizeFirebirdRecord('DOCTOS_VE', [
             'UNIDADES' => '1.0000',
+            'TIPO_CAMBIO' => '1.0000',
         ]);
 
         $this->assertSame('1.0000', $record['UNIDADES']);
+        $this->assertSame(1.0, $record['TIPO_CAMBIO']);
     }
 
     public function test_committed_units_alias_is_mapped_to_firebird_column(): void
