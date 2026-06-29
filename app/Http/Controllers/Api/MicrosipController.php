@@ -87,20 +87,20 @@ class MicrosipController extends Controller
 
         try {
             $rows = DB::connection('firebird')->select(<<<'SQL'
-                SELECT * FROM CARGOS_CLIENTE (?, ?, ?, ?, ?)
+                select * from CARGOS_CLIENTE (?, ?, ?, ?, ?)
             SQL, [
                 (int) $clienteId,
                 $fechaHoy,
-                $fechaFinal,
-                'S',
-                'S',
+                $fechaHoy,
+                'N',
+                'N',
             ]);
 
             return response()->json([
                 'ok' => true,
                 'cliente_id' => (int) $clienteId,
                 'fecha' => $fechaHoy,
-                'fecha_final' => $fechaFinal,
+                'fecha_final' => $fechaHoy,
                 'data' => $this->normalizeUtf8($rows),
             ]);
         } catch (Throwable $e) {
