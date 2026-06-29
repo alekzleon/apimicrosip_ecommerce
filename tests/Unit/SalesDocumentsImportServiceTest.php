@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Services\SalesDocumentsImportService;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use RuntimeException;
 
 class SalesDocumentsImportServiceTest extends TestCase
 {
@@ -45,7 +46,43 @@ class SalesDocumentsImportServiceTest extends TestCase
         $this->assertSame('000123', $record['CLAVE_ARTICULO']);
     }
 
-    public function test_numeric_strings_outside_doctos_ve_det_are_not_normalized(): void
+    public function test_doctos_ve_total_strings_are_normalized_before_firebird_insert(): void
+    {
+        $record = $this->normalizeFirebirdRecord('DOCTOS_VE', [
+            'TOTAL' => '3359.00',
+            'IMPORTE_NETO' => '2895.69',
+            'TOTAL_IMPUESTOS' => '463.31',
+            'DOCTO_VE_ID' => '123',
+            'FOLIO' => '000123',
+        ]);
+
+        $this->assertSame(3359.0, $record['TOTAL']);
+        $this->assertSame(2895.69, $record['IMPORTE_NETO']);
+        $this->assertSame(463.31, $record['TOTAL_IMPUESTOS']);
+        $this->assertSame('123', $record['DOCTO_VE_ID']);
+        $this->assertSame('000123', $record['FOLIO']);
+    }
+
+    public function test_doctos_ve_total_with_thousands_separator_is_normalized_before_firebird_insert(): void
+    {
+        $record = $this->normalizeFirebirdRecord('DOCTOS_VE', [
+            'TOTAL' => '3,359.00',
+        ]);
+
+        $this->assertSame(3359.0, $record['TOTAL']);
+    }
+
+    public function test_doctos_ve_total_must_be_a_valid_decimal(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Valor decimal invalido para DOCTOS_VE.TOTAL.');
+
+        $this->normalizeFirebirdRecord('DOCTOS_VE', [
+            'TOTAL' => 'no valido',
+        ]);
+    }
+
+    public function test_non_decimal_numeric_strings_outside_doctos_ve_det_are_not_normalized(): void
     {
         $record = $this->normalizeFirebirdRecord('DOCTOS_VE', [
             'UNIDADES' => '1.0000',

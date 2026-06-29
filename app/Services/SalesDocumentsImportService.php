@@ -267,7 +267,19 @@ class SalesDocumentsImportService
                 continue;
             }
 
-            $record[$column] = $this->normalizeFirebirdDecimal($value);
+            $normalized = $this->normalizeFirebirdDecimal($value);
+
+            if (
+                $table === 'DOCTOS_VE'
+                && strtoupper((string) $column) === 'TOTAL'
+                && ! $this->isBlankValue($value)
+                && ! is_float($normalized)
+                && ! is_int($normalized)
+            ) {
+                throw new RuntimeException('Valor decimal invalido para DOCTOS_VE.TOTAL.');
+            }
+
+            $record[$column] = $normalized;
         }
 
         return $record;
@@ -277,15 +289,27 @@ class SalesDocumentsImportService
     {
         $column = strtoupper($column);
 
-        if ($table === 'DOCTOS_VE' && $column === 'TIPO_CAMBIO') {
-            return true;
-        }
+        return match ($table) {
+            'DOCTOS_VE' => $this->shouldNormalizeFirebirdHeaderDecimal($column),
+            'DOCTOS_VE_DET' => $this->shouldNormalizeFirebirdDetailDecimal($column),
+            default => false,
+        };
+    }
 
-        if ($table !== 'DOCTOS_VE_DET') {
+    private function shouldNormalizeFirebirdHeaderDecimal(string $column): bool
+    {
+        $column = strtoupper($column);
+
+        if (str_ends_with($column, '_ID')) {
             return false;
         }
 
-        return $this->shouldNormalizeFirebirdDetailDecimal($column);
+        return $column === 'TIPO_CAMBIO'
+            || str_starts_with($column, 'PCTJE_')
+            || str_contains($column, 'IMPORTE')
+            || str_contains($column, 'TOTAL')
+            || str_contains($column, 'DSCTO')
+            || str_contains($column, 'DESCUENTO');
     }
 
     private function shouldNormalizeFirebirdDetailDecimal(string $column): bool
@@ -316,11 +340,19 @@ class SalesDocumentsImportService
 
         $trimmed = trim($value);
 
-        if (! Str::isMatch('/^-?\d+(?:\.\d+)?$/', $trimmed)) {
-            return $value;
+        if (Str::isMatch('/^-?\d+(?:\.\d+)?$/', $trimmed)) {
+            return (float) $trimmed;
         }
 
-        return (float) $trimmed;
+        if (Str::isMatch('/^-?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/', $trimmed)) {
+            return (float) str_replace(',', '', $trimmed);
+        }
+
+        if (Str::isMatch('/^-?\d+(?:,\d+)?$/', $trimmed)) {
+            return (float) str_replace(',', '.', $trimmed);
+        }
+
+        return $value;
     }
 
     private function applyFirebirdGeneratedValues(string $table, array $record, string $returningField): array
