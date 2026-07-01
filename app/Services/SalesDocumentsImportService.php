@@ -136,8 +136,12 @@ class SalesDocumentsImportService
             throw new RuntimeException('Documento sin detalles DOCTOS_VE_DET.');
         }
 
-        return DB::connection('firebird')->transaction(function () use ($header, $details): array {
-            $doctoVeId = $this->insertFirebirdRecord('DOCTOS_VE', $header, 'DOCTO_VE_ID');
+        return DB::connection('firebird')->transaction(function () use ($document, $header, $details): array {
+            $doctoVeId = $this->insertFirebirdRecord(
+                'DOCTOS_VE',
+                $this->withoutArrayKeys($header, ['uso_cfdi', 'metodo_pago_sat', 'forma_pago']),
+                'DOCTO_VE_ID'
+            );
             $detailIds = [];
 
             foreach ($details as $index => $detail) {
@@ -158,11 +162,78 @@ class SalesDocumentsImportService
                 ];
             }
 
+            $libresPedVeId = $this->insertFirebirdRecord(
+                'LIBRES_PED_VE',
+                $this->buildLibresPedVeRecord($document, $header, $doctoVeId),
+                'DOCTO_VE_ID'
+            );
+
             return [
                 'docto_ve_id' => $doctoVeId,
                 'detalles' => $detailIds,
+                'libres_ped_ve_id' => $libresPedVeId,
             ];
         });
+    }
+
+    private function buildLibresPedVeRecord(array $document, array $header, mixed $doctoVeId): array
+    {
+        if (! $doctoVeId) {
+            throw new RuntimeException('No se puede insertar LIBRES_PED_VE porque falta DOCTO_VE_ID.');
+        }
+
+        return [
+            'DOCTO_VE_ID' => $doctoVeId,
+            'RECOGEN' => 'No',
+            'USO_DE_CFDI' => $this->integerValueOrDefault($document, $header, 'uso_cfdi', 18649597),
+            'METODO_DE_PAGO' => $this->integerValueOrDefault($document, $header, 'metodo_pago_sat', 18649600),
+            'FORMA_DE_PAGO' => $this->integerValueOrDefault($document, $header, 'forma_pago', 18649605),
+            'PICKTOLIGTH' => 'S',
+            'PREPAGO_AUTORIZADO' => 'N',
+            'ESTATUS_INICIAL_DE_CARGO' => 31491119,
+            'SAR' => 'N',
+        ];
+    }
+
+    private function integerValueOrDefault(array $document, array $header, string $key, int $default): int
+    {
+        $value = $this->arrayValue($document, $key) ?? $this->arrayValue($header, $key);
+
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && ctype_digit(trim($value))) {
+            return (int) trim($value);
+        }
+
+        return $default;
+    }
+
+    private function arrayValue(array $data, string $name): mixed
+    {
+        foreach ($data as $key => $value) {
+            if (strcasecmp((string) $key, $name) === 0) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function withoutArrayKeys(array $data, array $names): array
+    {
+        foreach (array_keys($data) as $key) {
+            foreach ($names as $name) {
+                if (strcasecmp((string) $key, (string) $name) === 0) {
+                    unset($data[$key]);
+
+                    continue 2;
+                }
+            }
+        }
+
+        return $data;
     }
 
     private function markDocumentSynced(string $token, array $document, array $microsipIds): void

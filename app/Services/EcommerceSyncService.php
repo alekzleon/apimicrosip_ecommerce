@@ -252,6 +252,18 @@ class EcommerceSyncService
                 'endpoint' => '/api/v1/admin/sync/customers',
                 'payload_key' => 'customers',
             ],
+            'libres_clientes', 'libre_cliente', 'librecliente' => [
+                'id_field' => 'CLIENTE_ID',
+                'query' => <<<'SQL'
+                    SELECT
+                        CLIENTE_ID,
+                        UBICACION
+                    FROM LIBRES_CLIENTES
+                    WHERE CLIENTE_ID = ?
+                SQL,
+                'endpoint' => '/api/v1/admin/sync/libres-clientes',
+                'payload_key' => 'libres_clientes',
+            ],
             'dircliente', 'dir_cliente', 'dirs_clientes', 'dirs_cliente', 'direccion_cliente' => [
                 'id_field' => 'DIR_CLI_ID',
                 'query' => 'SELECT * FROM DIRS_CLIENTES WHERE DIR_CLI_ID = ?',
