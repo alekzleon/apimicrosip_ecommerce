@@ -118,6 +118,16 @@ class SalesDocumentsImportServiceTest extends TestCase
         $this->assertSame(0.0, $withValue['UNIDADES_COMPROM']);
     }
 
+    public function test_doctos_ve_order_purchase_is_limited_to_firebird_column_length(): void
+    {
+        $record = $this->applyFirebirdStringLimits('DOCTOS_VE', [
+            'ORDEN_COMPRA' => 'OC CHAPULTEPEC ABARROTES RAUL 09.pdf',
+        ]);
+
+        $this->assertSame(35, mb_strlen($record['ORDEN_COMPRA']));
+        $this->assertSame('C CHAPULTEPEC ABARROTES RAUL 09.pdf', $record['ORDEN_COMPRA']);
+    }
+
     public function test_libres_ped_ve_record_is_built_from_sales_document_fiscal_fields(): void
     {
         $record = $this->buildLibresPedVeRecord([
@@ -213,6 +223,17 @@ class SalesDocumentsImportServiceTest extends TestCase
     private function applyFirebirdDetailDefaults(string $table, array $record): array
     {
         $method = new ReflectionMethod(SalesDocumentsImportService::class, 'applyFirebirdDetailDefaults');
+
+        return $method->invoke(new SalesDocumentsImportService(), $table, $record);
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     * @return array<string, mixed>
+     */
+    private function applyFirebirdStringLimits(string $table, array $record): array
+    {
+        $method = new ReflectionMethod(SalesDocumentsImportService::class, 'applyFirebirdStringLimits');
 
         return $method->invoke(new SalesDocumentsImportService(), $table, $record);
     }

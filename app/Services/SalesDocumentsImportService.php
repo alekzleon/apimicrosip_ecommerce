@@ -271,6 +271,7 @@ class SalesDocumentsImportService
         $record = $this->applyFirebirdColumnAliases($table, $record);
         $record = $this->applyFirebirdDetailDefaults($table, $record);
         $record = $this->normalizeFirebirdRecord($table, $record);
+        $record = $this->applyFirebirdStringLimits($table, $record);
         $record = $this->applyFirebirdGeneratedValues($table, $record, $returningField);
 
         if ($record === []) {
@@ -325,6 +326,28 @@ class SalesDocumentsImportService
         }
 
         $record['UNIDADES_COMPROM'] = 0.0;
+
+        return $record;
+    }
+
+    private function applyFirebirdStringLimits(string $table, array $record): array
+    {
+        $limits = match (strtoupper($table)) {
+            'DOCTOS_VE' => [
+                'ORDEN_COMPRA' => 35,
+            ],
+            default => [],
+        };
+
+        foreach ($limits as $column => $maxLength) {
+            if (! array_key_exists($column, $record) || ! is_string($record[$column])) {
+                continue;
+            }
+
+            if (mb_strlen($record[$column]) > $maxLength) {
+                $record[$column] = mb_substr($record[$column], -$maxLength);
+            }
+        }
 
         return $record;
     }
